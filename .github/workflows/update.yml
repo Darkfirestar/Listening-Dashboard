@@ -1,0 +1,89 @@
+name: Update listening data
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"   # four times a day
+  workflow_dispatch:          # lets you press "Run workflow" by hand
+    inputs:
+      full_resync:
+        description: "Re-read the whole Last.fm history (only needed if old plays were deleted on Last.fm)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "fetch.py"
+      - "data/spotify-history.json"   # uploading Spotify history starts an update
+      - ".github/workflows/update.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-listening-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # If Last.fm is down this step fails, but it still writes the page data from the
+      # saved history (with a note), so the site keeps working and is deployed below.
+      - name: Pull new scrobbles, track lengths and genres
+        id: fetch
+        continue-on-error: true
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USER: Mungusx
+          TZ_NAME: America/Los_Angeles
+          MAX_LOOKUPS: "800"
+          MAX_GENRE_LOOKUPS: "800"
+          FULL_RESYNC: ${{ inputs.full_resync }}
+        run: python3 fetch.py
+
+      - name: Save the history to the repository
+        run: |
+          if [ ! -f data/library.json ]; then
+            echo "No history saved yet."
+            exit 0
+          fi
+          git config user.name "listening-bot"
+          git config user.email "listening-bot@users.noreply.github.com"
+          git add data/library.json
+          if git diff --cached --quiet; then
+            echo "No new data to save."
+            exit 0
+          fi
+          git commit -m "Update listening data"
+          # If you edited a file while this ran, merge your change in before pushing.
+          for attempt in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "Push failed, retrying in 10 seconds"
+            sleep 10
+          done
+          exit 1
+
+      # Publish even if saving to the repository failed, so the site is never behind.
+      - uses: actions/upload-pages-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          path: docs
+
+      - id: deployment
+        if: ${{ !cancelled() }}
+        uses: actions/deploy-pages@v5
+
+      - name: Report a failed update
+        if: ${{ !cancelled() && steps.fetch.outcome == 'failure' }}
+        run: |
+          echo "::error::The Last.fm update failed. The site still shows your saved history. Open the 'Pull new scrobbles' step above to read why."
+          exit 1
