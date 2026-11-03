@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" data-design="hifi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Add Spotify history</title>
+  <meta name="theme-color" content="#24211d">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    (function () {
+      var looks = { hifi: '#24211d', wrapped: '#2a1a6e', swiss: '#ffffff' }, d = 'hifi';
+      try { d = localStorage.getItem('ld.design') || d; } catch (e) {}
+      if (!looks[d]) d = 'hifi';
+      document.documentElement.setAttribute('data-design', d);
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', looks[d]);
+    })();
+  </script>
+</head>
+<body>
+  <div id="app" class="import-page">
+    <header class="bar"><h1>Add Spotify history</h1><a class="link-pill" href="./" id="back">Back to the dashboard</a></header>
+    <main>
+      <section>
+        <h2>1. Ask Spotify for your history</h2>
+        <ol class="steps">
+          <li>On spotify.com, sign in and open your account's Privacy settings.</li>
+          <li>Under Download your data, tick Extended streaming history and request it. It covers your whole account; Spotify says it can take up to 30 days.</li>
+          <li>When Spotify emails you, download the zip file to this phone.</li>
+        </ol>
+      </section>
+      <section>
+        <h2>2. Choose the file here</h2>
+        <p class="cap">Pick the zip file, or the JSON files inside it. Everything is read on this phone; nothing is sent anywhere.</p>
+        <p style="margin-top:12px">
+          <input id="files" type="file" accept=".zip,.json,application/zip,application/json" multiple>
+          <label class="pill file-pick" for="files">Choose Spotify files</label>
+        </p>
+        <div id="result" role="status" aria-live="polite"></div>
+      </section>
+      <section id="upload-steps" hidden>
+        <h2>3. Upload it to your repository</h2>
+        <ol class="steps">
+          <li>Open your <strong>listening-dashboard</strong> repository on github.com and go into the <strong>data</strong> folder. (It appears after the first update has run.)</li>
+          <li>Press Add file, then Upload files, and choose <strong>spotify-history.json</strong> from your downloads.</li>
+          <li>Press Commit changes. An update starts by itself. When it shows a green check in the Actions tab, reload the dashboard.</li>
+        </ol>
+        <p class="cap" style="margin-top:10px">To update it later, request a new download from Spotify, make the file again here and upload it the same way; it replaces the old one. Plays that Last.fm already has are left out automatically, so nothing counts twice.</p>
+        <p class="cap" style="margin-top:10px">Like your Last.fm history, this file is readable by anyone who finds your public repository. It holds only times, seconds played, artists, songs and albums.</p>
+      </section>
+    </main>
+  </div>
+  <script src="import.js"></script>
+</body>
+</html>

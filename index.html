@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-design="hifi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Listening stats</title>
+  <meta name="theme-color" content="#24211d">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Runs before anything is drawn: apply the saved look (no flash of the wrong colors)
+    // and start downloading the data while the rest of the page loads.
+    (function () {
+      var looks = { hifi: '#24211d', wrapped: '#2a1a6e', swiss: '#ffffff' }, d = 'hifi', q = location.search;
+      try { d = localStorage.getItem('ld.design') || d; } catch (e) {}
+      var m = q.match(/[?&]design=([a-z]+)/); if (m) d = m[1];
+      if (!looks[d]) d = 'hifi';
+      document.documentElement.setAttribute('data-design', d);
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', looks[d]);
+      var demo = /[?&]demo(=1|=true)?(&|$)/.test(q);
+      window.LD_DEMO = demo;
+      // the browser's cache is used and re-checked with a tiny request once it is 10 minutes old
+      window.LD_DATA = fetch(demo ? 'data/demo.json' : 'data/listening.json').then(function (res) {
+        if (!res.ok) return { error: true, status: res.status };
+        return res.json().then(function (j) { return { json: j }; });
+      }).catch(function (e) { return { error: e }; }); // no connection, or a download cut short
+    })();
+  </script>
+</head>
+<body>
+  <div id="app" aria-live="polite"><p class="state">Loading your listening history&hellip;</p></div>
+  <div id="tip" role="tooltip" hidden></div>
+  <noscript><p class="state">This page needs JavaScript to draw your charts.</p></noscript>
+  <script src="stats.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
